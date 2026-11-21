@@ -1,7 +1,7 @@
 <template>
   <Modal :open="open" title="智能图表推荐" wide @close="$emit('close')">
     <p class="rec-intro">
-      根据当前数据集的列类型、分类数量和行数生成建议。所有分析都在浏览器本地完成，数据不会上传。
+      会自动分析日期列、分类基数、数值相关性、指标量纲与常量列，为当前数据集挑选不同的图表类型和坐标轴组合。所有分析都在浏览器本地完成，数据不会上传。
     </p>
 
     <div v-if="result.suggestions.length" class="rec-list">

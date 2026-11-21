@@ -6,9 +6,8 @@ import { DEFAULT_STYLE } from '../lib/chartOptions'
 import { inferColumnType } from '../lib/csv'
 
 const defaultDashboard = () => ({
-  datasetId: null,
-  linkageColumnId: null,
   chartIds: [],
+  linkageColumnName: null,
   filterValue: null
 })
 
@@ -72,6 +71,7 @@ export async function initStore() {
   store.charts = next.charts || []
   store.dashboard = { ...defaultDashboard(), ...(next.dashboard || {}) }
   store.ui = { ...defaultUi(), ...(next.ui || {}) }
+  migrateDashboard()
   normalizeSelection()
   store.loaded = true
 
@@ -111,27 +111,36 @@ function normalizeSelection() {
     }
   }
 
-  const dashDataset = store.datasets.find((item) => item.id === store.dashboard.datasetId)
-  if (!dashDataset) {
-    store.dashboard.datasetId = store.datasets[0]?.id ?? null
-    store.dashboard.linkageColumnId = null
-    store.dashboard.chartIds = []
-    store.dashboard.filterValue = null
-  } else {
-    const link = dashDataset.columns.find(
-      (column) => column.id === store.dashboard.linkageColumnId && column.type !== 'number'
-    )
-    if (!link) {
-      const fallback =
-        dashDataset.columns.find((column) => column.type === 'text') ||
-        dashDataset.columns.find((column) => column.type === 'date') ||
-        null
-      store.dashboard.linkageColumnId = fallback?.id ?? null
+  normalizeDashboard()
+}
+
+function migrateDashboard() {
+  const dash = store.dashboard
+  if (dash.linkageColumnName === undefined) dash.linkageColumnName = null
+  if (dash.datasetId !== undefined || dash.linkageColumnId !== undefined) {
+    const legacyDataset = store.datasets.find((item) => item.id === dash.datasetId)
+    if (!dash.linkageColumnName) {
+      const legacyColumn = legacyDataset?.columns.find((item) => item.id === dash.linkageColumnId)
+      dash.linkageColumnName = legacyColumn?.name ?? null
     }
-    store.dashboard.chartIds = (store.dashboard.chartIds || []).filter((id) => {
-      const chart = store.charts.find((item) => item.id === id)
-      return Boolean(chart && chart.datasetId === dashDataset.id)
-    })
+    delete dash.datasetId
+    delete dash.linkageColumnId
+  }
+}
+
+function normalizeDashboard() {
+  const chartIds = new Set(store.charts.map((chart) => chart.id))
+  store.dashboard.chartIds = (store.dashboard.chartIds || [])
+    .filter((id) => chartIds.has(id))
+    .slice(0, 4)
+  normalizeDashboardLinkage()
+}
+
+function normalizeDashboardLinkage() {
+  const names = getDashboardLinkageNames()
+  if (!names.some((item) => item.name === store.dashboard.linkageColumnName)) {
+    store.dashboard.linkageColumnName = names[0]?.name ?? null
+    store.dashboard.filterValue = null
   }
 }
 
@@ -241,12 +250,7 @@ export function deleteDataset(datasetId) {
   if (index === -1) return
   store.datasets.splice(index, 1)
   store.charts = store.charts.filter((chart) => chart.datasetId !== datasetId)
-  if (store.dashboard.datasetId === datasetId) {
-    store.dashboard.datasetId = null
-    store.dashboard.linkageColumnId = null
-    store.dashboard.chartIds = []
-    store.dashboard.filterValue = null
-  }
+  store.dashboard.filterValue = null
   normalizeSelection()
 }
 
@@ -293,6 +297,9 @@ export function updateColumn(datasetId, columnId, patch) {
       for (const item of dataset.columns) {
         if (item.formula) item.formula = item.formula.replace(pattern, `[${trimmed}]`)
       }
+      if (store.dashboard.linkageColumnName === previous) {
+        store.dashboard.linkageColumnName = trimmed
+      }
     }
   }
   if (patch.type !== undefined) column.type = patch.type
@@ -320,14 +327,9 @@ export function deleteColumn(datasetId, columnId) {
     }
   }
 
-  if (store.dashboard.datasetId === datasetId) {
-    if (store.dashboard.linkageColumnId === columnId) {
-      const fallback =
-        dataset.columns.find((column) => column.type === 'text') ||
-        dataset.columns.find((column) => column.type === 'date')
-      store.dashboard.linkageColumnId = fallback?.id ?? null
-    }
+  if (store.dashboard.linkageColumnName === column.name) {
     store.dashboard.filterValue = null
+    normalizeDashboardLinkage()
   }
   touch(dataset)
 }
@@ -473,6 +475,8 @@ export function deleteChart(chartId) {
   if (index === -1) return
   store.charts.splice(index, 1)
   store.dashboard.chartIds = (store.dashboard.chartIds || []).filter((id) => id !== chartId)
+  store.dashboard.filterValue = null
+  normalizeDashboardLinkage()
   if (store.ui.activeChartId === chartId) {
     const next = store.charts.find((chart) => chart.datasetId === store.ui.activeDatasetId)
     store.ui.activeChartId = next?.id ?? null
@@ -498,28 +502,14 @@ export function selectChart(chartId) {
   store.ui.activeDatasetId = chart.datasetId
 }
 
-export function setDashboardDataset(datasetId) {
-  const dataset = findDataset(datasetId)
-  store.dashboard.datasetId = dataset?.id ?? null
-  const linkage =
-    dataset?.columns.find((column) => column.type === 'text') ||
-    dataset?.columns.find((column) => column.type === 'date') ||
-    null
-  store.dashboard.linkageColumnId = linkage?.id ?? null
-  store.dashboard.chartIds = []
-  store.dashboard.filterValue = null
-}
-
-export function setLinkageColumn(columnId) {
-  store.dashboard.linkageColumnId = columnId
+export function setLinkageColumnName(name) {
+  store.dashboard.linkageColumnName = name || null
   store.dashboard.filterValue = null
 }
 
 export function addDashboardChart(chartId) {
   const chart = store.charts.find((item) => item.id === chartId)
-  if (!chart || chart.datasetId !== store.dashboard.datasetId) {
-    return { ok: false, message: '只能添加与看板同一数据集下的图表' }
-  }
+  if (!chart) return { ok: false, message: '图表不存在' }
   if (store.dashboard.chartIds.includes(chartId)) {
     return { ok: false, message: '该图表已在看板中' }
   }
@@ -527,11 +517,16 @@ export function addDashboardChart(chartId) {
     return { ok: false, message: '看板最多放置 4 个图表' }
   }
   store.dashboard.chartIds.push(chartId)
+  if (!store.dashboard.linkageColumnName) {
+    store.dashboard.linkageColumnName = getDashboardLinkageNames()[0]?.name ?? null
+  }
   return { ok: true }
 }
 
 export function removeDashboardChart(chartId) {
   store.dashboard.chartIds = store.dashboard.chartIds.filter((id) => id !== chartId)
+  store.dashboard.filterValue = null
+  normalizeDashboardLinkage()
 }
 
 export function setDashboardFilter(value) {
@@ -554,6 +549,36 @@ export function getActiveChart() {
   return store.charts.find((chart) => chart.id === store.ui.activeChartId) || null
 }
 
-export function getDashboardDataset() {
-  return findDataset(store.dashboard.datasetId)
+export function getDashboardCharts() {
+  return (store.dashboard.chartIds || [])
+    .map((id) => store.charts.find((chart) => chart.id === id))
+    .filter(Boolean)
+}
+
+/**
+ * 看板内各图表所属数据集里出现过的分类列名（按覆盖数据集数量降序）。
+ * 联动以列名为准，这样不同数据集中的同名列可以互相对齐筛选。
+ */
+export function getDashboardLinkageNames() {
+  const entries = new Map()
+  for (const chart of getDashboardCharts()) {
+    const dataset = findDataset(chart.datasetId)
+    if (!dataset) continue
+    for (const column of dataset.columns) {
+      if (column.type === 'number') continue
+      const entry = entries.get(column.name) || { name: column.name, datasetIds: new Set() }
+      entry.datasetIds.add(dataset.id)
+      entries.set(column.name, entry)
+    }
+  }
+  return [...entries.values()]
+    .sort((a, b) => b.datasetIds.size - a.datasetIds.size)
+    .map((entry) => ({ name: entry.name, datasetCount: entry.datasetIds.size }))
+}
+
+export function linkageColumnOf(dataset, name) {
+  if (!dataset || !name) return null
+  return (
+    dataset.columns.find((column) => column.name === name && column.type !== 'number') || null
+  )
 }

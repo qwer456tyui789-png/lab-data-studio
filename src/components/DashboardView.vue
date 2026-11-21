@@ -3,23 +3,20 @@
     <div class="view-head">
       <div>
         <h2>联动看板</h2>
-        <p class="view-sub">同一数据集下的多个图表共享联动字段，点击任意柱或数据点即可筛选</p>
+        <p class="view-sub">可跨数据集组合图表，按同名分类字段（如「组别」「监测站」）联动筛选</p>
       </div>
-      <div v-if="dataset" class="row toolbar">
-        <select class="select dataset-select" :value="dataset.id" @change="onDatasetChange">
-          <option v-for="item in store.datasets" :key="item.id" :value="item.id">
-            {{ item.name }}
-          </option>
-        </select>
+      <div class="row toolbar">
         <select
           class="select linkage-select"
-          :value="store.dashboard.linkageColumnId || ''"
-          :disabled="!categoryColumns.length"
+          :value="store.dashboard.linkageColumnName || ''"
+          :disabled="!linkageOptions.length"
           @change="onLinkageChange"
         >
-          <option value="" disabled>选择联动字段</option>
-          <option v-for="column in categoryColumns" :key="column.id" :value="column.id">
-            {{ column.name }}
+          <option value="" disabled>
+            {{ linkageOptions.length ? '选择联动字段' : '没有可联动字段' }}
+          </option>
+          <option v-for="item in linkageOptions" :key="item.name" :value="item.name">
+            {{ item.name }}{{ item.datasetCount > 1 ? `（${item.datasetCount} 个数据集）` : '' }}
           </option>
         </select>
         <select
@@ -31,7 +28,7 @@
             {{ availableCharts.length ? '选择要加入的图表' : '没有可添加的图表' }}
           </option>
           <option v-for="item in availableCharts" :key="item.id" :value="item.id">
-            {{ item.name }}
+            {{ datasetNameOf(item) }} · {{ item.name }}
           </option>
         </select>
         <button class="btn btn-sm" :disabled="!selectedAddId" @click="handleAddChart">
@@ -40,21 +37,7 @@
       </div>
     </div>
 
-    <div v-if="!dataset" class="card empty-state">
-      <div class="empty-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6" />
-          <rect x="13" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6" />
-          <rect x="3" y="13" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6" />
-          <rect x="13" y="13" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6" />
-        </svg>
-      </div>
-      <h3>还没有选择数据集</h3>
-      <p>在左侧选择一个数据集，即可搭建多图联动的看板。</p>
-      <button class="btn btn-primary btn-sm" @click="setActiveTab('data')">去录入数据</button>
-    </div>
-
-    <template v-else>
+    <template v-if="dashboardCharts.length">
       <div class="card filter-bar">
         <div class="filter-left">
           <span class="panel-label">联动筛选</span>
@@ -79,7 +62,9 @@
           </div>
         </div>
         <div class="filter-right">
-          <span class="hint">共 {{ rows.length }} 条记录 · 当前显示 {{ filteredCount }} 条</span>
+          <span class="hint">
+            共 {{ totalRows }} 条记录 · 当前显示 {{ filteredCount }} 条
+          </span>
           <button
             v-if="store.dashboard.filterValue"
             class="btn btn-ghost btn-sm"
@@ -90,8 +75,8 @@
         </div>
       </div>
 
-      <div v-if="!linkageColumn" class="notice">
-        <span>当前数据集没有文本或日期列，无法设置联动字段。先在数据表格添加「组别」这类分类列。</span>
+      <div v-if="!linkageOptions.length" class="notice">
+        <span>看板图表的数据集没有同名文本或日期列，暂时无法联动。可在数据表格中添加同名的「组别」这类分类列。</span>
         <button class="btn btn-ghost btn-sm" @click="setActiveTab('data')">去数据表格</button>
       </div>
 
@@ -101,38 +86,55 @@
             <div class="row">
               <h3>{{ item.name }}</h3>
               <span class="badge">{{ chartTypeLabel(item.type) }}</span>
+              <span class="badge badge-dataset">{{ datasetNameOf(item) }}</span>
             </div>
             <button class="btn btn-ghost btn-sm" @click="handleRemove(item.id)">移出看板</button>
           </div>
           <div class="dash-canvas">
             <EChart
+              v-if="chartRowCount(item) > 0"
               :option="chartOptions[item.id]"
               @chart-click="(params) => onChartClick(item, params)"
             />
+            <div v-else class="dash-canvas-empty">
+              <p>当前筛选「{{ store.dashboard.filterValue }}」在该图表的数据集中没有匹配记录</p>
+            </div>
           </div>
           <div class="dash-foot">
             <span class="hint">
-              {{ linkageColumn ? `联动字段：${linkageColumn.name}` : '未设置联动字段' }}
+              {{
+                linkageColumnFor(item)
+                  ? `联动字段：${linkageColumnFor(item).name}`
+                  : '该图表的数据集缺少联动字段，不参与筛选'
+              }}
             </span>
-            <span class="hint">{{ store.dashboard.filterValue ? '已按选中值筛选' : '点击数据点进行联动' }}</span>
+            <span class="hint">
+              {{
+                !linkageColumnFor(item)
+                  ? '仅作为对照展示'
+                  : store.dashboard.filterValue
+                    ? '已按选中值筛选'
+                    : '点击数据点进行联动'
+              }}
+            </span>
           </div>
-        </div>
-
-        <div v-if="!dashboardCharts.length" class="card empty-state dash-empty">
-          <div class="empty-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6" />
-              <rect x="13" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6" />
-              <rect x="3" y="13" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6" />
-              <rect x="13" y="13" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6" />
-            </svg>
-          </div>
-          <h3>看板还是空的</h3>
-          <p>从上方选择已有图表加入看板，或者先到「图表」页创建图表。</p>
-          <button class="btn btn-primary btn-sm" @click="goCreateChart">去创建图表</button>
         </div>
       </div>
     </template>
+
+    <div v-else class="card empty-state dash-empty">
+      <div class="empty-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6" />
+          <rect x="13" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6" />
+          <rect x="3" y="13" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6" />
+          <rect x="13" y="13" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6" />
+        </svg>
+      </div>
+      <h3>看板还是空的</h3>
+      <p>从上方选择已有图表加入看板，图表可以来自不同数据集，只要它们有同名的分类列即可联动。</p>
+      <button class="btn btn-primary btn-sm" @click="goCreateChart">去创建图表</button>
+    </div>
   </section>
 </template>
 
@@ -146,14 +148,13 @@ import { distinctValues } from '../lib/stats'
 import {
   store,
   addDashboardChart,
-  chartsOf,
-  getDashboardDataset,
+  getDashboardCharts,
+  getDashboardLinkageNames,
+  linkageColumnOf,
   removeDashboardChart,
-  selectDataset,
   setActiveTab,
-  setDashboardDataset,
   setDashboardFilter,
-  setLinkageColumn
+  setLinkageColumnName
 } from '../store/useStore'
 import { useToast } from '../composables/useToast'
 
@@ -161,52 +162,75 @@ const { push } = useToast()
 
 const selectedAddId = ref('')
 
-const dataset = computed(() => getDashboardDataset())
-const rows = computed(() => (dataset.value ? computeDataset(dataset.value).rows : []))
-const categoryColumns = computed(() =>
-  dataset.value
-    ? dataset.value.columns.filter((column) => column.type === 'text' || column.type === 'date')
-    : []
+const dashboardCharts = computed(() => getDashboardCharts())
+const linkageOptions = computed(() => getDashboardLinkageNames())
+
+const linkedEntries = computed(() => {
+  const map = new Map()
+  for (const chart of dashboardCharts.value) {
+    if (map.has(chart.datasetId)) continue
+    const dataset = store.datasets.find((item) => item.id === chart.datasetId)
+    if (!dataset) continue
+    map.set(chart.datasetId, { dataset, rows: computeDataset(dataset).rows })
+  }
+  return [...map.values()]
+})
+
+const totalRows = computed(() =>
+  linkedEntries.value.reduce((total, entry) => total + entry.rows.length, 0)
 )
-const linkageColumn = computed(() => {
-  if (!dataset.value) return null
-  return (
-    dataset.value.columns.find(
-      (column) => column.id === store.dashboard.linkageColumnId && column.type !== 'number'
-    ) || null
-  )
-})
-const dashboardCharts = computed(() => {
-  if (!dataset.value) return []
-  return (store.dashboard.chartIds || [])
-    .map((id) => chartsOf(dataset.value.id).find((chart) => chart.id === id))
-    .filter(Boolean)
-})
-const availableCharts = computed(() => {
-  if (!dataset.value) return []
-  return chartsOf(dataset.value.id).filter(
-    (chart) => !(store.dashboard.chartIds || []).includes(chart.id)
-  )
-})
-const filterValues = computed(() =>
-  linkageColumn.value ? distinctValues(rows.value, linkageColumn.value).slice(0, 30) : []
+
+const availableCharts = computed(() =>
+  store.charts.filter((chart) => !(store.dashboard.chartIds || []).includes(chart.id))
 )
+
+const filterValues = computed(() => {
+  const name = store.dashboard.linkageColumnName
+  if (!name) return []
+  const seen = new Set()
+  const values = []
+  for (const entry of linkedEntries.value) {
+    const column = linkageColumnOf(entry.dataset, name)
+    if (!column) continue
+    for (const value of distinctValues(entry.rows, column)) {
+      if (seen.has(value)) continue
+      seen.add(value)
+      values.push(value)
+    }
+  }
+  return values.slice(0, 30)
+})
+
 const filteredCount = computed(() => {
-  if (!linkageColumn.value || store.dashboard.filterValue == null) return rows.value.length
-  return rows.value.filter(
-    (row) => String(row.values[linkageColumn.value.id] ?? '') === String(store.dashboard.filterValue)
-  ).length
+  const filter = store.dashboard.filterValue
+  if (filter == null) return totalRows.value
+  let count = 0
+  for (const entry of linkedEntries.value) {
+    const column = linkageColumnOf(entry.dataset, store.dashboard.linkageColumnName)
+    if (!column) {
+      count += entry.rows.length
+      continue
+    }
+    count += entry.rows.filter(
+      (row) => String(row.values[column.id] ?? '') === String(filter)
+    ).length
+  }
+  return count
 })
+
 const chartOptions = computed(() => {
   const map = {}
-  if (!dataset.value) return map
+  const entries = new Map(linkedEntries.value.map((entry) => [entry.dataset.id, entry]))
   for (const chart of dashboardCharts.value) {
+    const entry = entries.get(chart.datasetId)
+    if (!entry) continue
+    const column = linkageColumnOf(entry.dataset, store.dashboard.linkageColumnName)
     map[chart.id] = buildChartOption({
-      dataset: dataset.value,
-      computedRows: rows.value,
+      dataset: entry.dataset,
+      computedRows: entry.rows,
       chart,
-      filterValue: store.dashboard.filterValue,
-      linkageColumnId: store.dashboard.linkageColumnId
+      filterValue: column ? store.dashboard.filterValue : null,
+      linkageColumnId: column?.id ?? null
     }).option
   }
   return map
@@ -218,13 +242,28 @@ watch(availableCharts, (list) => {
   }
 })
 
-function onDatasetChange(event) {
-  setDashboardDataset(event.target.value)
-  selectedAddId.value = ''
+function datasetNameOf(chart) {
+  return store.datasets.find((item) => item.id === chart.datasetId)?.name || '未知数据集'
+}
+
+function linkageColumnFor(chart) {
+  const dataset = store.datasets.find((item) => item.id === chart.datasetId)
+  return linkageColumnOf(dataset, store.dashboard.linkageColumnName)
+}
+
+function chartRowCount(chart) {
+  const entry = linkedEntries.value.find((item) => item.dataset.id === chart.datasetId)
+  if (!entry) return 0
+  const filter = store.dashboard.filterValue
+  const column = linkageColumnOf(entry.dataset, store.dashboard.linkageColumnName)
+  if (filter == null || !column) return entry.rows.length
+  return entry.rows.filter(
+    (row) => String(row.values[column.id] ?? '') === String(filter)
+  ).length
 }
 
 function onLinkageChange(event) {
-  setLinkageColumn(event.target.value)
+  setLinkageColumnName(event.target.value)
 }
 
 function handleAddChart() {
@@ -248,17 +287,20 @@ function toggleValue(value) {
 }
 
 function onChartClick(chart, params) {
-  if (!linkageColumn.value) return
+  const name = store.dashboard.linkageColumnName
+  if (!name) return
+  const entry = linkedEntries.value.find((item) => item.dataset.id === chart.datasetId)
+  if (!entry) return
+  const column = linkageColumnOf(entry.dataset, name)
+  if (!column) return
+
   let value
   const rowId = params?.data?.rowId
   if (rowId) {
-    const row = rows.value.find((item) => item.id === rowId)
+    const row = entry.rows.find((item) => item.id === rowId)
     if (!row) return
-    value = row.values[linkageColumn.value.id]
-  } else if (
-    chart?.xColumnId === linkageColumn.value.id &&
-    params?.data?.category != null
-  ) {
+    value = row.values[column.id]
+  } else if (chart.xColumnId === column.id && params?.data?.category != null) {
     value = params.data.category
   } else {
     return
@@ -272,8 +314,6 @@ function onChartClick(chart, params) {
 }
 
 function goCreateChart() {
-  if (!dataset.value) return
-  selectDataset(dataset.value.id)
   setActiveTab('chart')
 }
 </script>
@@ -309,16 +349,22 @@ function goCreateChart() {
   flex-wrap: wrap;
 }
 
-.dataset-select {
-  width: 190px;
-}
-
 .linkage-select {
-  width: 150px;
+  width: 170px;
 }
 
 .chart-select {
-  width: 180px;
+  width: 240px;
+}
+
+.badge-dataset {
+  background: var(--surface-2);
+  color: var(--text-3);
+  border: 1px solid var(--border);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .filter-bar {
@@ -398,6 +444,18 @@ function goCreateChart() {
 .dash-canvas {
   height: 330px;
   padding: 2px 6px;
+}
+
+.dash-canvas-empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 28px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 12.5px;
+  line-height: 1.6;
 }
 
 .dash-foot {

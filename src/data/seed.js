@@ -41,12 +41,12 @@ export function createSeedState() {
     updatedAt: Date.now(),
     columns: [fallGroup, time, height, gravity],
     rows: [
-      row({ [fallGroup.id]: '第1组', [time.id]: '0.45', [height.id]: '1.00', [gravity.id]: '' }),
-      row({ [fallGroup.id]: '第1组', [time.id]: '0.64', [height.id]: '2.00', [gravity.id]: '' }),
-      row({ [fallGroup.id]: '第2组', [time.id]: '0.55', [height.id]: '1.50', [gravity.id]: '' }),
-      row({ [fallGroup.id]: '第2组', [time.id]: '0.71', [height.id]: '2.50', [gravity.id]: '' }),
-      row({ [fallGroup.id]: '第3组', [time.id]: '0.78', [height.id]: '3.00', [gravity.id]: '' }),
-      row({ [fallGroup.id]: '第3组', [time.id]: '0.90', [height.id]: '4.00', [gravity.id]: '' })
+      row({ [fallGroup.id]: 'A组', [time.id]: '0.45', [height.id]: '1.00', [gravity.id]: '' }),
+      row({ [fallGroup.id]: 'A组', [time.id]: '0.64', [height.id]: '2.00', [gravity.id]: '' }),
+      row({ [fallGroup.id]: 'B组', [time.id]: '0.55', [height.id]: '1.50', [gravity.id]: '' }),
+      row({ [fallGroup.id]: 'B组', [time.id]: '0.71', [height.id]: '2.50', [gravity.id]: '' }),
+      row({ [fallGroup.id]: 'C组', [time.id]: '0.78', [height.id]: '3.00', [gravity.id]: '' }),
+      row({ [fallGroup.id]: 'C组', [time.id]: '0.90', [height.id]: '4.00', [gravity.id]: '' })
     ]
   }
 
@@ -88,9 +88,8 @@ export function createSeedState() {
     datasets: [hooke, freeFall],
     charts: [hookeChart, gravityChart, fallChart],
     dashboard: {
-      datasetId: freeFall.id,
-      linkageColumnId: fallGroup.id,
       chartIds: [gravityChart.id, fallChart.id],
+      linkageColumnName: fallGroup.name,
       filterValue: null
     },
     ui: {

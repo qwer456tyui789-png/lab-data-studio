@@ -65,6 +65,47 @@ export function describeTrend(regression) {
   return `${formatEquation(regression)}，R² = ${formatR2(regression.r2)}（n=${regression.n}）`
 }
 
+/**
+ * 成对剔除空值后计算 Pearson 相关系数。
+ * 返回 null 表示样本不足或某一列没有波动。
+ */
+export function pearsonCorrelation(rows, columnA, columnB) {
+  const xs = []
+  const ys = []
+  for (const row of rows || []) {
+    const x = row.values?.[columnA.id]
+    const y = row.values?.[columnB.id]
+    if (Number.isFinite(x) && Number.isFinite(y)) {
+      xs.push(x)
+      ys.push(y)
+    }
+  }
+  const n = xs.length
+  if (n < 3) return null
+
+  let sumX = 0
+  let sumY = 0
+  for (let i = 0; i < n; i += 1) {
+    sumX += xs[i]
+    sumY += ys[i]
+  }
+  const meanX = sumX / n
+  const meanY = sumY / n
+
+  let sxx = 0
+  let sxy = 0
+  let syy = 0
+  for (let i = 0; i < n; i += 1) {
+    const dx = xs[i] - meanX
+    const dy = ys[i] - meanY
+    sxx += dx * dx
+    sxy += dx * dy
+    syy += dy * dy
+  }
+  if (sxx === 0 || syy === 0) return null
+  return { r: sxy / Math.sqrt(sxx * syy), n }
+}
+
 export function distinctValues(rows, column) {
   const seen = new Set()
   const values = []

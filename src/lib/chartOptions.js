@@ -106,79 +106,143 @@ export function buildChartOption({
   const chartType = chart?.type || 'line'
   const horizontal = chartType === 'bar' && !!style.barHorizontal
   const isScatter = chartType === 'scatter'
+  const isPie = chartType === 'pie'
+  const isLineLike = chartType === 'line' || chartType === 'area'
+  const usesAggregation = chartType === 'bar' || isLineLike || isPie
 
-  // 柱状图按分类聚合（取均值），避免同一分类多次测量时出现重复类目
-  let barGroups = null
-  if (chartType === 'bar') {
+  const numericColumnOrder = new Map(
+    columns
+      .filter((column) => column.type === 'number')
+      .map((column, index) => [column.id, index])
+  )
+
+  function valuesOf(indices, columnId) {
+    return indices
+      .map((index) => rows[index].values[columnId])
+      .filter((value) => Number.isFinite(value))
+  }
+
+  function meanOf(indices, columnId) {
+    const values = valuesOf(indices, columnId)
+    return values.length
+      ? values.reduce((total, value) => total + value, 0) / values.length
+      : null
+  }
+
+  function sumOf(indices, columnId) {
+    const values = valuesOf(indices, columnId)
+    return values.length
+      ? values.reduce((total, value) => total + value, 0)
+      : null
+  }
+
+  // 折线图 / 柱状图按 X 分类聚合（取均值），避免重复类目与乱序连线
+  let groups = null
+  if (usesAggregation) {
     const map = new Map()
     rows.forEach((row, index) => {
       const label = rowLabels[index]
       if (!map.has(label)) map.set(label, [])
       map.get(label).push(index)
     })
-    barGroups = [...map.entries()].map(([label, indices]) => ({ label, indices }))
+    groups = [...map.entries()].map(([label, indices]) => ({
+      label,
+      indices,
+      xValue: xNumeric[indices[0]]
+    }))
+    if (xIsNumeric) {
+      groups.sort((a, b) => a.xValue - b.xValue)
+    }
   }
-  const xLabels = barGroups ? barGroups.map((group) => group.label) : rowLabels
+  const xLabels = groups ? groups.map((group) => group.label) : rowLabels
 
   const trendlines = []
-  const series = yColumns.map((column, seriesIndex) => {
-    const color = seriesColor(chart, column.id, seriesIndex)
-    const data = barGroups
-      ? barGroups.map((group) => {
-          const values = group.indices
-            .map((index) => rows[index].values[column.id])
-            .filter((value) => Number.isFinite(value))
-          const mean = values.length
-            ? values.reduce((total, value) => total + value, 0) / values.length
-            : null
-          return { value: mean, category: group.label }
-        })
-      : rows.map((row, index) => {
-          const y = row.values[column.id]
-          if (isScatter) {
+  let series
+  if (isPie) {
+    const column = yColumns[0]
+    series = [
+      {
+        name: column.name,
+        type: 'pie',
+        radius: ['40%', '68%'],
+        center: ['50%', '56%'],
+        data: groups
+          .map((group) => ({
+            value: sumOf(group.indices, column.id),
+            name: group.label,
+            category: group.label
+          }))
+          .filter((item) => item.value != null),
+        itemStyle: { borderColor: '#ffffff', borderWidth: 2 },
+        label: {
+          show: true,
+          formatter: '{b}\n{d}%',
+          color: '#5b6479',
+          fontSize: 11
+        },
+        labelLine: { length: 8, length2: 8 },
+        emphasis: { scale: true, scaleSize: 6, label: { fontWeight: 600 } }
+      }
+    ]
+  } else {
+    series = yColumns.map((column, seriesIndex) => {
+      const color = seriesColor(chart, column.id, numericColumnOrder.get(column.id) ?? seriesIndex)
+      const data = groups
+        ? groups.map((group) => ({
+            value: meanOf(group.indices, column.id),
+            category: group.label
+          }))
+        : rows.map((row, index) => {
+            const y = row.values[column.id]
             return { value: [xNumeric[index], Number.isFinite(y) ? y : null], rowId: row.id }
-          }
-          return { value: Number.isFinite(y) ? y : null, rowId: row.id }
-        })
+          })
 
-    return {
-      name: column.name,
-      type: isScatter ? 'scatter' : chartType,
-      data,
-      symbol: 'circle',
-      symbolSize: isScatter ? 9 : 6,
-      showSymbol: isScatter ? true : chartType === 'line' ? !!style.showSymbol : false,
-      smooth: chartType === 'line' ? !!style.smooth : false,
-      lineStyle: chartType === 'line' ? { width: 2.5, color } : undefined,
-      areaStyle:
-        chartType === 'line' && style.area
-          ? { color: withAlpha(color, 0.16), opacity: 1 }
-          : undefined,
-      itemStyle: { color },
-      barMaxWidth: 42,
-      stack: style.stack && chartType !== 'scatter' ? 'total' : undefined,
-      emphasis: isScatter ? { focus: 'series', scale: 1.4 } : { focus: 'series' },
-      label: {
-        show: !!style.showLabel,
-        position: isScatter ? 'right' : horizontal ? 'right' : 'top',
-        fontSize: 11,
-        color: '#5b6479',
-        formatter: (params) => {
-          const value = params.value
-          if (Array.isArray(value)) return `${formatNumber(value[0])}, ${formatNumber(value[1])}`
-          if (value && typeof value === 'object') return formatNumber(value.value)
-          return formatNumber(Number(value))
+      return {
+        name: column.name,
+        type: isScatter ? 'scatter' : isLineLike ? 'line' : chartType,
+        data,
+        symbol: 'circle',
+        symbolSize: isScatter ? 9 : 6,
+        showSymbol: isScatter ? true : isLineLike ? !!style.showSymbol : false,
+        smooth: isLineLike ? !!style.smooth : false,
+        lineStyle: isLineLike ? { width: 2.5, color } : undefined,
+        areaStyle:
+          isLineLike && (style.area || chartType === 'area')
+            ? { color: withAlpha(color, 0.16), opacity: 1 }
+            : undefined,
+        itemStyle: { color },
+        barMaxWidth: 42,
+        stack: style.stack && (chartType === 'bar' || isLineLike) ? 'total' : undefined,
+        emphasis: isScatter ? { focus: 'series', scale: 1.4 } : { focus: 'series' },
+        label: {
+          show: !!style.showLabel,
+          position: isScatter ? 'right' : horizontal ? 'right' : 'top',
+          fontSize: 11,
+          color: '#5b6479',
+          formatter: (params) => {
+            const value = params.value
+            if (Array.isArray(value)) return `${formatNumber(value[0])}, ${formatNumber(value[1])}`
+            if (value && typeof value === 'object') return formatNumber(value.value)
+            return formatNumber(Number(value))
+          }
         }
       }
-    }
-  })
+    })
+  }
 
-  if (chart?.trendline?.enabled && (chartType === 'line' || isScatter)) {
+  if (chart?.trendline?.enabled && (isLineLike || isScatter)) {
     const trendColor = style.trendColor || '#7c869c'
     for (const column of yColumns) {
-      const points = rows
-        .map((row, index) => ({ x: xNumeric[index], y: row.values[column.id] }))
-        .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+      const points = isScatter
+        ? rows
+            .map((row, index) => ({ x: xNumeric[index], y: row.values[column.id] }))
+            .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+        : groups
+            .map((group, order) => ({
+              x: xIsNumeric ? group.xValue : order,
+              y: meanOf(group.indices, column.id)
+            }))
+            .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
       const regression = linearRegression(points)
       if (!regression) continue
       const seriesName = yColumns.length > 1 ? `趋势线 · ${column.name}` : '线性趋势线'
@@ -186,9 +250,8 @@ export function buildChartOption({
         ? [...points]
             .sort((a, b) => a.x - b.x)
             .map((point) => [point.x, regression.intercept + regression.slope * point.x])
-        : rows.map((row, index) => ({
-            value: regression.intercept + regression.slope * xNumeric[index],
-            rowId: row.id
+        : points.map((point) => ({
+            value: regression.intercept + regression.slope * point.x
           }))
       series.push({
         name: seriesName,
@@ -206,7 +269,7 @@ export function buildChartOption({
       trendlines.push({
         name: column.name,
         regression,
-        text: `${formatEquation(regression)}，R² = ${formatR2(regression.r2)}${xIsNumeric ? '' : '（X 轴按行号回归）'}`
+        text: `${formatEquation(regression)}，R² = ${formatR2(regression.r2)}${xIsNumeric ? '' : '（X 轴按序号回归）'}`
       })
     }
   }
@@ -287,26 +350,31 @@ export function buildChartOption({
       pageIconColor: '#8c94a8',
       pageIconInactiveColor: '#d4dae7'
     },
-    grid: {
-      left: 18,
-      right: 26,
-      top: trendSubtext ? 92 : 62,
-      bottom: 26,
-      containLabel: true
-    },
     tooltip: {
-      trigger: isScatter ? 'item' : 'axis',
-      axisPointer: isScatter
-        ? undefined
-        : { type: chartType === 'bar' ? 'shadow' : 'line', lineStyle: { color: '#c6cde0' } },
+      trigger: isScatter || isPie ? 'item' : 'axis',
+      axisPointer:
+        isScatter || isPie
+          ? undefined
+          : { type: chartType === 'bar' ? 'shadow' : 'line', lineStyle: { color: '#c6cde0' } },
       confine: true,
       backgroundColor: 'rgba(29, 38, 57, 0.94)',
       borderWidth: 0,
       textStyle: { color: '#f4f6fb', fontSize: 12 },
       formatter: undefined
     },
-    xAxis,
-    yAxis,
+    ...(isPie
+      ? {}
+      : {
+          grid: {
+            left: 18,
+            right: 26,
+            top: trendSubtext ? 92 : 62,
+            bottom: 26,
+            containLabel: true
+          },
+          xAxis,
+          yAxis
+        }),
     series
   }
 

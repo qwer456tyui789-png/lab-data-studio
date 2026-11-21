@@ -58,6 +58,51 @@ describe('buildChartOption', () => {
     expect(scatterOption.series[0].data[1].rowId).toBe('r1')
   })
 
+  it('折线图按分类聚合，数值 X 轴自动升序', () => {
+    const numericDataset = {
+      columns: [column('mass', '质量(g)'), column('ext', '伸长量(cm)')],
+      rows: []
+    }
+    const numericRows = makeRows([
+      { mass: 100, ext: 2 },
+      { mass: 50, ext: 1 },
+      { mass: 100, ext: 4 }
+    ])
+    const lineChart = {
+      ...chart,
+      type: 'line',
+      xColumnId: 'mass',
+      yColumnIds: ['ext']
+    }
+    const { option } = buildChartOption({
+      dataset: numericDataset,
+      computedRows: numericRows,
+      chart: lineChart
+    })
+    expect(option.xAxis.data).toEqual(['50', '100'])
+    expect(option.series[0].data.map((item) => item.value)).toEqual([1, 3])
+  })
+
+  it('系列颜色按数值列顺序分配，与样式面板一致', () => {
+    const colorDataset = {
+      columns: [column('group', '组别', 'text'), column('a', '甲'), column('b', '乙')],
+      rows: []
+    }
+    const colorRows = makeRows([{ group: 'A组', a: 1, b: 2 }])
+    const lineChart = {
+      ...chart,
+      type: 'line',
+      xColumnId: 'group',
+      yColumnIds: ['b']
+    }
+    const { option } = buildChartOption({
+      dataset: colorDataset,
+      computedRows: colorRows,
+      chart: lineChart
+    })
+    expect(option.series[0].itemStyle.color).toBe('#ee6c4d')
+  })
+
   it('联动过滤后仅使用匹配行', () => {
     const { option } = buildChartOption({
       dataset,
@@ -78,5 +123,26 @@ describe('buildChartOption', () => {
     })
     expect(option.title.text).toContain('请选择至少一个数值指标')
     expect(option.series).toBeUndefined()
+  })
+
+  it('饼图按分类求和，且不生成坐标轴', () => {
+    const pieChart = { ...chart, type: 'pie' }
+    const { option } = buildChartOption({ dataset, computedRows: rows, chart: pieChart })
+    expect(option.xAxis).toBeUndefined()
+    expect(option.yAxis).toBeUndefined()
+    expect(option.grid).toBeUndefined()
+    expect(option.tooltip.trigger).toBe('item')
+    expect(option.series[0].type).toBe('pie')
+    expect(option.series[0].data.map((item) => item.value)).toEqual([30, 30])
+    expect(option.series[0].data.map((item) => item.category)).toEqual(['第1组', '第2组'])
+  })
+
+  it('面积图强制填充并保留折线系列', () => {
+    const areaChart = { ...chart, type: 'area', style: { area: false } }
+    const { option } = buildChartOption({ dataset, computedRows: rows, chart: areaChart })
+    const series = option.series[0]
+    expect(series.type).toBe('line')
+    expect(series.areaStyle).toBeTruthy()
+    expect(option.xAxis.data).toEqual(['第1组', '第2组'])
   })
 })

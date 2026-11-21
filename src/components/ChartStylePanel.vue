@@ -17,8 +17,14 @@
           {{ item.label }}
         </button>
       </div>
-      <p v-if="chart.type === 'bar'" class="hint type-hint">
-        柱状图按 X 轴分类自动聚合，同一分类的多次测量取均值。
+      <p
+        v-if="chart.type === 'bar' || chart.type === 'line' || chart.type === 'area'"
+        class="hint type-hint"
+      >
+        折线图、面积图与柱状图按 X 轴分类自动聚合，同一分类的多次测量取均值。
+      </p>
+      <p v-else-if="chart.type === 'pie'" class="hint type-hint">
+        饼图使用第一个数值指标，按 X 轴分类求和显示占比。
       </p>
     </section>
 
@@ -127,7 +133,7 @@
           @click="setStyle('showLegend', style.showLegend === false)"
         ></button>
       </div>
-      <div class="switch-row">
+      <div v-if="chart.type !== 'pie'" class="switch-row">
         <span>显示数值标签</span>
         <button
           class="switch"
@@ -135,7 +141,7 @@
           @click="setStyle('showLabel', !style.showLabel)"
         ></button>
       </div>
-      <template v-if="chart.type === 'line'">
+      <template v-if="chart.type === 'line' || chart.type === 'area'">
         <div class="switch-row">
           <span>平滑曲线</span>
           <button
@@ -144,7 +150,7 @@
             @click="setStyle('smooth', !style.smooth)"
           ></button>
         </div>
-        <div class="switch-row">
+        <div v-if="chart.type === 'line'" class="switch-row">
           <span>面积填充</span>
           <button
             class="switch"
@@ -161,7 +167,7 @@
           ></button>
         </div>
       </template>
-      <template v-if="chart.type === 'line' || chart.type === 'bar'">
+      <template v-if="chart.type === 'line' || chart.type === 'area' || chart.type === 'bar'">
         <div class="switch-row">
           <span>堆叠显示</span>
           <button
@@ -185,20 +191,22 @@
 
     <section class="panel-section">
       <div class="panel-label">趋势线</div>
-      <div class="switch-row" :class="{ disabled: chart.type === 'bar' }">
+      <div class="switch-row" :class="{ disabled: chart.type === 'bar' || chart.type === 'pie' }">
         <span>线性回归趋势线</span>
         <button
           class="switch"
           :class="{ on: Boolean(chart.trendline?.enabled) }"
-          :disabled="chart.type === 'bar'"
+          :disabled="chart.type === 'bar' || chart.type === 'pie'"
           @click="toggleTrendline"
         ></button>
       </div>
       <p class="hint">
         {{
           chart.type === 'bar'
-            ? '柱状图不适用趋势线，切换到折线图或散点图后可开启。'
-            : '叠加最小二乘拟合直线，并在图表上方显示方程与 R²。'
+            ? '柱状图不适用趋势线，切换到折线图、面积图或散点图后可开启。'
+            : chart.type === 'pie'
+              ? '饼图不适用趋势线，切换到折线图、面积图或散点图后可开启。'
+              : '叠加最小二乘拟合直线，并在图表上方显示方程与 R²。'
         }}
       </p>
     </section>
@@ -277,7 +285,7 @@ function setPaletteColor(index, value) {
 }
 
 function toggleTrendline() {
-  if (props.chart.type === 'bar') return
+  if (props.chart.type === 'bar' || props.chart.type === 'pie') return
   updateChart(props.chart.id, {
     trendline: { ...(props.chart.trendline || {}), enabled: !props.chart.trendline?.enabled }
   })

@@ -84,7 +84,7 @@
               </span>
             </div>
             <div v-else class="chart-foot muted small">
-              提示：折线图与散点图可在右侧「趋势线」中开启线性回归，并显示方程与 R²。
+              提示：折线图、面积图与散点图可在右侧「趋势线」中开启线性回归，并显示方程与 R²。
             </div>
           </div>
 
@@ -207,7 +207,7 @@ function applySuggestion(suggestion) {
     xColumnId: suggestion.xColumnId,
     yColumnIds: suggestion.yColumnIds,
     trendline: suggestion.trendline,
-    style: { title: suggestion.title }
+    style: { title: suggestion.title, ...(suggestion.style || {}) }
   })
   recommendOpen.value = false
   push(`已应用「${suggestion.title}」`, 'success')
