@@ -255,13 +255,143 @@ onMounted(() => {
     var(--bg);
 }
 
-@media (max-width: 1320px) {
+@media (max-width: 1080px) {
   .privacy-chip {
     display: none;
   }
 
   .brand {
     width: 216px;
+  }
+}
+
+/* refined shell */
+.topbar {
+  height: 68px;
+  gap: 22px;
+  padding: 0 22px 0 18px;
+  background: rgba(255, 255, 255, 0.84);
+  border-bottom: 1px solid rgba(224, 229, 242, 0.9);
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.brand {
+  width: 246px;
+  gap: 11px;
+}
+
+.brand-mark {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #7082ff 0%, #4b5fe8 55%, #7c5ce8 100%);
+  box-shadow: 0 8px 18px rgba(75, 95, 232, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  overflow: hidden;
+}
+
+.brand-mark svg {
+  position: relative;
+  z-index: 1;
+}
+
+.brand-text strong {
+  font-size: 15.5px;
+  font-weight: 760;
+  letter-spacing: -0.01em;
+}
+
+.brand-text span {
+  font-size: 9.5px;
+  color: #9aa3b7;
+  letter-spacing: 0.12em;
+}
+
+.tabs {
+  align-self: center;
+  height: 44px;
+  gap: 2px;
+  padding: 4px;
+  background: #f1f4fc;
+  border: 1px solid #e7ebf5;
+  border-radius: 13px;
+}
+
+.tab {
+  height: 34px;
+  padding: 0 18px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b748b;
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text);
+}
+
+.tab.active {
+  background: #ffffff;
+  color: var(--accent);
+  box-shadow: 0 3px 10px rgba(23, 32, 80, 0.09);
+}
+
+.tab.active::after {
+  display: none;
+}
+
+.topbar-right {
+  gap: 12px;
+}
+
+.privacy-chip {
+  padding: 5px 10px;
+  background: #f2f5ff;
+  border-color: #e0e6fa;
+  color: #5d6883;
+  font-size: 10.5px;
+  letter-spacing: 0.01em;
+}
+
+.save-state {
+  font-size: 11.5px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  box-shadow: 0 0 0 3px rgba(154, 163, 182, 0.12);
+}
+
+.save-state.saved .status-dot {
+  box-shadow: 0 0 0 3px rgba(15, 159, 122, 0.12);
+}
+
+.main {
+  padding: 24px 28px 32px;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(75, 95, 232, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(75, 95, 232, 0.028) 1px, transparent 1px),
+    radial-gradient(1000px 520px at 6% -10%, rgba(96, 116, 246, 0.13), transparent 64%),
+    radial-gradient(760px 480px at 100% 0%, rgba(139, 92, 246, 0.08), transparent 60%);
+  background-size: 28px 28px, 28px 28px, auto, auto;
+}
+
+@media (max-width: 1100px) {
+  .brand {
+    width: 214px;
+  }
+
+  .tab {
+    padding: 0 13px;
+  }
+
+  .main {
+    padding: 20px 20px 26px;
   }
 }
 </style>

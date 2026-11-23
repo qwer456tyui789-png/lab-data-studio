@@ -394,4 +394,125 @@ async function handleFile(event) {
 .sidebar-foot .hint {
   margin-top: 2px;
 }
+
+/* refined dataset rail */
+.sidebar {
+  width: 264px;
+  background: linear-gradient(180deg, #fbfcff 0%, #f6f8ff 100%);
+  border-right-color: rgba(224, 229, 242, 0.95);
+}
+
+.sidebar-head {
+  padding: 22px 18px 12px;
+}
+
+.sidebar-head h2 {
+  font-size: 17px;
+  letter-spacing: -0.025em;
+}
+
+.ds-list {
+  padding: 6px 12px 12px;
+  gap: 6px;
+}
+
+.ds-item {
+  position: relative;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.ds-item:hover,
+.ds-item:focus-visible {
+  background: #ffffff;
+  border-color: #e7ebf6;
+  box-shadow: 0 5px 16px rgba(23, 32, 80, 0.05);
+}
+
+.ds-item.active {
+  background: #ffffff;
+  border-color: #dde4fb;
+  box-shadow: 0 8px 22px rgba(75, 95, 232, 0.1);
+}
+
+.ds-item.active::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(180deg, #6d7ffa, #7c5ce8);
+}
+
+.ds-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: #f0f3fb;
+  color: #8a94aa;
+}
+
+.ds-item.active .ds-icon {
+  background: linear-gradient(135deg, #eef1ff, #f3edff);
+  color: var(--accent);
+}
+
+.ds-name {
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.ds-item.active .ds-name {
+  color: #3147c9;
+}
+
+.ds-meta {
+  font-size: 10.5px;
+  color: #939cb0;
+}
+
+.ds-actions {
+  gap: 2px;
+}
+
+.ds-item.active .ds-actions {
+  display: none;
+}
+
+.ds-item.active:hover .ds-actions,
+.ds-item.active:focus-within .ds-actions {
+  display: flex;
+}
+
+.ds-action {
+  width: 25px;
+  height: 25px;
+  border-radius: 7px;
+}
+
+.ds-action:hover {
+  background: #f1f4fc;
+}
+
+.sidebar-foot {
+  gap: 9px;
+  padding: 16px 18px 18px;
+  background: rgba(255, 255, 255, 0.62);
+  border-top-color: rgba(224, 229, 242, 0.95);
+}
+
+.sidebar-foot .hint {
+  font-size: 11px;
+  line-height: 1.55;
+  color: #929bb0;
+}
+
+.sidebar-foot .btn-primary {
+  height: 40px;
+}
 </style>

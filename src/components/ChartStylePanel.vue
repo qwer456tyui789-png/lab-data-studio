@@ -472,4 +472,67 @@ function resetStyle() {
 .switch:disabled {
   cursor: not-allowed;
 }
+
+/* refined inspector */
+.style-panel {
+  gap: 20px;
+  padding: 18px 18px 22px;
+}
+
+.panel-head h3 {
+  font-size: 15px;
+  font-weight: 690;
+  letter-spacing: -0.015em;
+}
+
+.panel-section {
+  gap: 11px;
+  padding-top: 16px;
+  border-top-color: #edf0f8;
+}
+
+.type-switch {
+  background: #f1f4fc;
+}
+
+.type-switch button {
+  flex: 1;
+  padding: 0 5px;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.y-list {
+  gap: 3px;
+  padding: 7px;
+  background: #f8faff;
+  border-color: #e5e9f4;
+  border-radius: 11px;
+}
+
+.y-item {
+  padding: 5px 7px;
+  border-radius: 7px;
+}
+
+.y-item:hover {
+  background: #ffffff;
+  box-shadow: 0 2px 7px rgba(23, 32, 80, 0.04);
+}
+
+.y-check {
+  font-size: 12px;
+}
+
+.palette-row {
+  gap: 9px;
+}
+
+.swatch span {
+  border-radius: 9px;
+}
+
+.color-dot span {
+  border-width: 2.5px;
+}
 </style>

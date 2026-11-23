@@ -537,4 +537,100 @@ thead .index-col {
   background: var(--surface);
   flex-wrap: wrap;
 }
+
+/* editorial data sheet */
+.view-head h2 {
+  font-size: 22px;
+  font-weight: 760;
+  letter-spacing: -0.035em;
+}
+
+.view-sub {
+  margin-top: 5px;
+  font-size: 12.5px;
+  color: #8b94a9;
+}
+
+.table-card {
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(20, 30, 70, 0.04), 0 14px 36px rgba(23, 32, 80, 0.05);
+}
+
+.data-grid th {
+  background: #f8faff;
+  border-bottom-color: #e3e8f4;
+}
+
+.th-inner {
+  gap: 8px;
+  padding: 12px 12px 11px 14px;
+  min-width: 176px;
+}
+
+.th-name {
+  font-size: 12.5px;
+  font-weight: 660;
+  color: #3d4761;
+}
+
+.th-name:hover {
+  background: #eef2ff;
+}
+
+.index-col {
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  background: #f8faff;
+  border-right-color: #e8ecf6;
+  color: #9aa3b6;
+  font-family: var(--mono);
+  font-size: 10.5px;
+}
+
+.data-grid tbody td {
+  border-bottom-color: #eff2f9;
+}
+
+.data-grid tbody tr:hover td {
+  background: #f9fbff;
+}
+
+.data-grid tbody tr:hover .index-col {
+  background: #f2f6ff;
+}
+
+.cell-input {
+  height: 42px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.cell-input:focus {
+  background: #fbfcff;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.formula-cell {
+  height: 42px;
+  padding: 0 14px;
+  font-size: 12px;
+  color: #6650c7;
+}
+
+.table-foot {
+  padding: 10px 16px;
+  background: #fbfcff;
+  font-size: 12px;
+}
+
+.table-foot .btn {
+  height: 32px;
+  padding: 0 11px;
+  font-size: 12px;
+}
+
+.table-empty {
+  font-size: 12.5px;
+}
 </style>

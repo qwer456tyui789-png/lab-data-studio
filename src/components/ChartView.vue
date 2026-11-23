@@ -360,4 +360,72 @@ async function exportPNG() {
     height: 460px;
   }
 }
+
+/* refined chart workspace */
+.view-head h2 {
+  font-size: 22px;
+  font-weight: 760;
+  letter-spacing: -0.035em;
+}
+
+.view-sub {
+  margin-top: 5px;
+  color: #8b94a9;
+}
+
+.chart-layout {
+  grid-template-columns: minmax(0, 1fr) 348px;
+  gap: 18px;
+}
+
+.chart-card {
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(20, 30, 70, 0.04), 0 14px 36px rgba(23, 32, 80, 0.05);
+}
+
+.chart-head {
+  padding: 15px 20px 13px;
+  background: linear-gradient(180deg, #ffffff, #fcfdff);
+}
+
+.chart-head h3 {
+  font-size: 15px;
+  font-weight: 690;
+  letter-spacing: -0.015em;
+}
+
+.canvas-wrap {
+  padding: 8px 12px 2px;
+}
+
+.chart-foot {
+  padding: 10px 20px 14px;
+  border-top-color: #e9edf7;
+}
+
+.trend-pill {
+  background: #f5f7ff;
+  border-color: #e2e7f7;
+  color: #5b6680;
+  font-size: 11px;
+}
+
+.notice {
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff9ee, #fdf3e3);
+}
+
+.select.chart-select {
+  width: 196px;
+}
+
+@media (max-width: 1180px) {
+  .chart-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .canvas-wrap {
+    height: 460px;
+  }
+}
 </style>

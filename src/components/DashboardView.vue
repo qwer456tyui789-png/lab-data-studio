@@ -476,4 +476,82 @@ function goCreateChart() {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* refined linked dashboard */
+.view-head h2 {
+  font-size: 22px;
+  font-weight: 760;
+  letter-spacing: -0.035em;
+}
+
+.view-sub {
+  margin-top: 5px;
+  color: #8b94a9;
+}
+
+.filter-bar {
+  padding: 13px 16px;
+  background: linear-gradient(135deg, #fbfcff 0%, #f5f8ff 100%);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.linkage-select {
+  width: 180px;
+}
+
+.chart-select {
+  width: 248px;
+}
+
+.badge-dataset {
+  background: #f1f4fc;
+  border-color: #e1e6f3;
+  color: #66718a;
+}
+
+.dash-grid {
+  gap: 18px;
+}
+
+.dash-card {
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(20, 30, 70, 0.04), 0 14px 36px rgba(23, 32, 80, 0.05);
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.dash-card:hover {
+  box-shadow: 0 2px 4px rgba(20, 30, 70, 0.05), 0 20px 46px rgba(23, 32, 80, 0.08);
+  transform: translateY(-2px);
+}
+
+.dash-head {
+  padding: 14px 18px 12px;
+  background: linear-gradient(180deg, #ffffff, #fcfdff);
+}
+
+.dash-head h3 {
+  font-size: 14px;
+  font-weight: 670;
+}
+
+.dash-canvas {
+  height: 340px;
+  padding: 4px 8px;
+}
+
+.dash-foot {
+  padding: 9px 18px 12px;
+  border-top-color: #e9edf7;
+}
+
+.dash-empty {
+  min-height: 340px;
+}
+
+@media (max-width: 1100px) {
+  .dash-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 </style>
